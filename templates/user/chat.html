@@ -1,0 +1,728 @@
+{% extends 'base.html' %}
+
+{% block title %}Chat - Dash AI{% endblock %}
+
+{% block style %}
+<style>
+    .chat-container {
+        display: flex;
+        flex-direction: column;
+        height: calc(100vh - 80px);
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .chat-messages {
+        flex-grow: 1;
+        overflow-y: auto;
+        padding: 20px;
+        padding-bottom: 120px;
+        margin-bottom: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
+
+    .chat-messages::-webkit-scrollbar {
+        display: none;
+    }
+
+    .message {
+        display: flex;
+        gap: 12px;
+        max-width: 85%;
+        animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .message.user {
+        align-self: flex-end;
+    }
+
+    .message.assistant {
+        align-self: flex-start;
+    }
+
+    .message-content {
+        background: #fff;
+        padding: 12px 16px;
+        border-radius: 12px;
+        border: 1px solid #ddd;
+        word-wrap: break-word;
+        white-space: pre-wrap;
+        line-height: 1.6;
+    }
+
+    .message.user .message-content {
+        background: #000;
+        color: #fff;
+        border-color: #000;
+    }
+
+    .message.assistant .message-content {
+        background: #f8f9fa;
+        color: #000;
+        white-space: normal;
+    }
+
+    /* Markdown Styling */
+    .message-content h1, .message-content h2, .message-content h3,
+    .message-content h4, .message-content h5, .message-content h6 {
+        margin-top: 16px;
+        margin-bottom: 8px;
+        font-weight: 600;
+    }
+
+    .message-content h1 { font-size: 1.8em; }
+    .message-content h2 { font-size: 1.5em; }
+    .message-content h3 { font-size: 1.3em; }
+
+    .message-content p {
+        margin-bottom: 12px;
+    }
+
+    .message-content ul, .message-content ol {
+        margin-left: 24px;
+        margin-bottom: 12px;
+    }
+
+    .message-content li {
+        margin-bottom: 6px;
+    }
+
+    .message-content code {
+        background: #f4f4f4;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+        font-size: 0.9em;
+    }
+
+    .message-content pre {
+        background: #1e1e1e;
+        padding: 16px;
+        border-radius: 8px;
+        overflow-x: auto;
+        margin: 12px 0;
+    }
+
+    .message-content pre code {
+        background: none;
+        padding: 0;
+        color: #d4d4d4;
+        font-size: 0.9em;
+    }
+
+    .code-block-wrapper {
+        margin: 12px 0;
+    }
+
+    .code-header {
+        background: #2d2d2d;
+        padding: 8px 16px;
+        border-radius: 8px 8px 0 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.85em;
+        color: #a0a0a0;
+    }
+
+    .copy-btn {
+        background: #3a3a3a;
+        border: none;
+        color: #a0a0a0;
+        padding: 4px 12px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.85em;
+        transition: all 0.2s;
+    }
+
+    .copy-btn:hover {
+        background: #4a4a4a;
+        color: #fff;
+    }
+
+    .copy-btn.copied {
+        color: #4ade80;
+    }
+
+    .message-content blockquote {
+        border-left: 4px solid #333;
+        padding-left: 16px;
+        margin: 12px 0;
+        color: #666;
+        font-style: italic;
+    }
+
+    .message-content a {
+        color: #000;
+        text-decoration: underline;
+    }
+
+    .message-content table {
+        border-collapse: collapse;
+        width: 100%;
+        margin: 12px 0;
+    }
+
+    .message-content th, .message-content td {
+        border: 1px solid #ddd;
+        padding: 8px 12px;
+        text-align: left;
+    }
+
+    .message-content th {
+        background: #f8f9fa;
+        font-weight: 600;
+    }
+
+    .mermaid {
+        background: #fff;
+        padding: 20px;
+        border-radius: 8px;
+        margin: 12px 0;
+        display: flex;
+        justify-content: center;
+    }
+
+    .typing-indicator {
+        display: flex;
+        gap: 4px;
+        padding: 12px 16px;
+    }
+
+    .typing-indicator span {
+        width: 8px;
+        height: 8px;
+        background: #666;
+        border-radius: 50%;
+        animation: typing 1.4s infinite;
+    }
+
+    .typing-indicator span:nth-child(2) {
+        animation-delay: 0.2s;
+    }
+
+    .typing-indicator span:nth-child(3) {
+        animation-delay: 0.4s;
+    }
+
+    @keyframes typing {
+        0%, 60%, 100% {
+            transform: translateY(0);
+        }
+        30% {
+            transform: translateY(-10px);
+        }
+    }
+
+    .chat-input-container {
+        position: fixed;
+        bottom: 0;
+        left: 260px;
+        right: 0;
+        background: #f5f5f5;
+        padding: 20px;
+        border-top: 1px solid #ddd;
+        transition: left 0.3s ease;
+    }
+
+    .chat-input-wrapper {
+        display: flex;
+        gap: 10px;
+        align-items: flex-end;
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .chat-input {
+        flex-grow: 1;
+        padding: 12px 16px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        font-size: 16px;
+        resize: none;
+        min-height: 50px;
+        max-height: 150px;
+        font-family: inherit;
+    }
+
+    .chat-input:focus {
+        outline: none;
+        border-color: #000;
+    }
+
+    .send-btn {
+        width: 45px;
+        height: 48px;
+        padding: 0 auto;
+        background: #333;
+        color: #fff;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 18px;
+        transition: background 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .send-btn:hover:not(:disabled) {
+        background: #666;
+    }
+
+    .send-btn:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+    }
+
+    .welcome-message {
+        text-align: center;
+        color: #666;
+        padding: 40px 20px;
+    }
+
+    .welcome-message h1 {
+        font-size: 2.5rem;
+        margin-bottom: 10px;
+        color: #000;
+    }
+
+    .welcome-message p {
+        font-size: 1.1rem;
+    }
+
+    .cursor {
+        display: inline-block;
+        width: 2px;
+        height: 1em;
+        background: #333;
+        animation: blink 1s infinite;
+        margin-left: 2px;
+        vertical-align: text-bottom;
+    }
+
+    @keyframes blink {
+        0%, 50% { opacity: 1; }
+        51%, 100% { opacity: 0; }
+    }
+</style>
+
+<!-- Marked.js for Markdown -->
+<script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js"></script>
+<!-- Highlight.js for Code Syntax Highlighting -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<!-- Mermaid for Diagrams -->
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="chat-container">
+    <div class="chat-messages" id="chatMessages">
+        <div class="welcome-message">
+            <h1>Welcome to Dash AI Chat</h1>
+            <p>Start a conversation by typing a message below</p>
+        </div>
+    </div>
+
+    <div class="chat-input-container" id="chatInputContainer">
+        <div class="chat-input-wrapper">
+            <textarea 
+                class="chat-input" 
+                id="chatInput" 
+                placeholder="Type your message here..."
+                rows="1"
+            ></textarea>
+            <button class="send-btn" id="sendBtn" onclick="sendMessage()">
+                <i class="bi bi-arrow-up"></i>
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+    // Initialize Mermaid
+    mermaid.initialize({ 
+        startOnLoad: true,
+        theme: 'default',
+        securityLevel: 'loose'
+    });
+
+    // Configure marked for better rendering
+    marked.setOptions({
+        highlight: function(code, lang) {
+            if (lang && hljs.getLanguage(lang)) {
+                return hljs.highlight(code, { language: lang }).value;
+            }
+            return hljs.highlightAuto(code).value;
+        },
+        breaks: true,
+        gfm: true
+    });
+
+    const chatInput = document.getElementById('chatInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const chatMessages = document.getElementById('chatMessages');
+    const chatInputContainer = document.getElementById('chatInputContainer');
+
+    // Update input container position when sidebar toggles
+    const originalToggleSidebar = window.toggleSidebar;
+    window.toggleSidebar = function() {
+        originalToggleSidebar();
+        const sidebar = document.getElementById('sidebar');
+        if (sidebar.classList.contains('collapsed')) {
+            chatInputContainer.style.left = '60px';
+        } else {
+            chatInputContainer.style.left = '260px';
+        }
+    };
+
+    // Auto-resize textarea as user types
+    chatInput.addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = this.scrollHeight + 'px';
+    });
+
+    // Send message on Enter (Shift+Enter for new line)
+    chatInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
+    });
+
+    function addMessage(content, isUser = false) {
+        // Remove welcome message if it exists
+        const welcomeMsg = document.querySelector('.welcome-message');
+        if (welcomeMsg) {
+            welcomeMsg.remove();
+        }
+
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${isUser ? 'user' : 'assistant'}`;
+        
+        const messageContent = document.createElement('div');
+        messageContent.className = 'message-content';
+        
+        if (isUser) {
+            messageContent.textContent = content;
+        }
+        
+        messageDiv.appendChild(messageContent);
+        chatMessages.appendChild(messageDiv);
+        
+        // Scroll to bottom
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        
+        return messageDiv;
+    }
+
+    function showTypingIndicator() {
+        const typingDiv = document.createElement('div');
+        typingDiv.className = 'message assistant';
+        typingDiv.id = 'typingIndicator';
+        
+        const messageContent = document.createElement('div');
+        messageContent.className = 'message-content';
+        
+        const typingIndicator = document.createElement('div');
+        typingIndicator.className = 'typing-indicator';
+        typingIndicator.innerHTML = '<span></span><span></span><span></span>';
+        
+        messageContent.appendChild(typingIndicator);
+        typingDiv.appendChild(messageContent);
+        chatMessages.appendChild(typingDiv);
+        
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        return typingDiv;
+    }
+
+    function removeTypingIndicator() {
+        const typingIndicator = document.getElementById('typingIndicator');
+        if (typingIndicator) {
+            typingIndicator.remove();
+        }
+    }
+
+    async function typewriterEffect(messageDiv, text) {
+        const contentDiv = messageDiv.querySelector('.message-content');
+        contentDiv.innerHTML = '';
+        
+        // Check for code blocks, lists, or other structured content
+        const hasStructuredContent = text.includes('```') || text.includes('* ') || text.includes('- ') || 
+                                     text.includes('1.') || text.includes('#');
+        
+        if (hasStructuredContent) {
+            // Process markdown with structured content
+            await typeMarkdownWithCode(contentDiv, text);
+        } else {
+            // Simple typewriter for plain text
+            const cursor = document.createElement('span');
+            cursor.className = 'cursor';
+            contentDiv.appendChild(cursor);
+            
+            for (let i = 0; i < text.length; i++) {
+                const char = text[i];
+                const textNode = document.createTextNode(char);
+                contentDiv.insertBefore(textNode, cursor);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+                await sleep(10);
+            }
+            
+            cursor.remove();
+            
+            // Render markdown after typing
+            const html = marked.parse(text);
+            contentDiv.innerHTML = html;
+            processCodeBlocks(contentDiv);
+        }
+        
+        // Render mermaid diagrams
+        const mermaidElements = contentDiv.querySelectorAll('.language-mermaid');
+        mermaidElements.forEach(el => {
+            const code = el.textContent;
+            const wrapper = el.closest('pre');
+            if (wrapper) {
+                const mermaidDiv = document.createElement('div');
+                mermaidDiv.className = 'mermaid';
+                mermaidDiv.textContent = code;
+                wrapper.replaceWith(mermaidDiv);
+            }
+        });
+        
+        if (mermaidElements.length > 0) {
+            await mermaid.run();
+        }
+        
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    async function typeMarkdownWithCode(contentDiv, text) {
+        // First, parse the entire markdown to HTML
+        const fullHtml = marked.parse(text);
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = fullHtml;
+        
+        // Get all child nodes
+        const nodes = Array.from(tempDiv.childNodes);
+        
+        // Process each node
+        for (const node of nodes) {
+            if (node.nodeName === 'PRE' || (node.nodeName === 'DIV' && node.classList.contains('code-block-wrapper'))) {
+                // Code block - insert instantly
+                contentDiv.appendChild(node.cloneNode(true));
+                processCodeBlocks(contentDiv);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+                await sleep(50);
+            } else if (node.nodeName === 'UL' || node.nodeName === 'OL') {
+                // List - insert instantly
+                contentDiv.appendChild(node.cloneNode(true));
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+                await sleep(50);
+            } else if (node.nodeName === 'TABLE') {
+                // Table - insert instantly
+                contentDiv.appendChild(node.cloneNode(true));
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+                await sleep(50);
+            } else if (node.nodeName === 'H1' || node.nodeName === 'H2' || node.nodeName === 'H3' || 
+                       node.nodeName === 'H4' || node.nodeName === 'H5' || node.nodeName === 'H6') {
+                // Headers - type with cursor
+                const header = document.createElement(node.nodeName);
+                contentDiv.appendChild(header);
+                
+                const cursor = document.createElement('span');
+                cursor.className = 'cursor';
+                header.appendChild(cursor);
+                
+                const text = node.textContent;
+                for (let char of text) {
+                    const textNode = document.createTextNode(char);
+                    header.insertBefore(textNode, cursor);
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                    await sleep(15);
+                }
+                cursor.remove();
+            } else {
+                // Regular paragraph or text - type with cursor
+                const p = document.createElement('p');
+                contentDiv.appendChild(p);
+                
+                const cursor = document.createElement('span');
+                cursor.className = 'cursor';
+                p.appendChild(cursor);
+                
+                // Handle inline elements (bold, italic, links, inline code)
+                await typeInlineElements(p, node, cursor);
+                cursor.remove();
+            }
+        }
+    }
+
+    async function typeInlineElements(container, node, cursor) {
+        if (node.nodeType === Node.TEXT_NODE) {
+            const text = node.textContent;
+            for (let char of text) {
+                const textNode = document.createTextNode(char);
+                container.insertBefore(textNode, cursor);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+                await sleep(8);
+            }
+        } else if (node.nodeType === Node.ELEMENT_NODE) {
+            if (node.nodeName === 'CODE') {
+                // Inline code - insert instantly
+                const codeEl = document.createElement('code');
+                codeEl.textContent = node.textContent;
+                container.insertBefore(codeEl, cursor);
+            } else if (node.nodeName === 'STRONG' || node.nodeName === 'B') {
+                const strong = document.createElement('strong');
+                container.insertBefore(strong, cursor);
+                for (let child of node.childNodes) {
+                    await typeInlineElements(strong, child, cursor);
+                }
+            } else if (node.nodeName === 'EM' || node.nodeName === 'I') {
+                const em = document.createElement('em');
+                container.insertBefore(em, cursor);
+                for (let child of node.childNodes) {
+                    await typeInlineElements(em, child, cursor);
+                }
+            } else if (node.nodeName === 'A') {
+                const a = document.createElement('a');
+                a.href = node.href;
+                container.insertBefore(a, cursor);
+                for (let child of node.childNodes) {
+                    await typeInlineElements(a, child, cursor);
+                }
+            } else {
+                // Other elements - process children
+                for (let child of node.childNodes) {
+                    await typeInlineElements(container, child, cursor);
+                }
+            }
+        }
+    }
+
+    function processCodeBlocks(container) {
+        const codeBlocks = container.querySelectorAll('pre code');
+        codeBlocks.forEach(block => {
+            const pre = block.parentElement;
+            const lang = block.className.replace('language-', '') || 'text';
+            
+            // Skip mermaid
+            if (lang === 'mermaid') return;
+            
+            // Create wrapper
+            const wrapper = document.createElement('div');
+            wrapper.className = 'code-block-wrapper';
+            
+            // Create header
+            const header = document.createElement('div');
+            header.className = 'code-header';
+            header.innerHTML = `
+                <span>${lang}</span>
+                <button class="copy-btn" onclick="copyCode(this)">
+                    <i class="bi bi-clipboard"></i> Copy
+                </button>
+            `;
+            
+            wrapper.appendChild(header);
+            pre.style.borderRadius = '0 0 8px 8px';
+            pre.style.marginTop = '0';
+            
+            pre.parentNode.insertBefore(wrapper, pre);
+            wrapper.appendChild(pre);
+        });
+    }
+
+    window.copyCode = function(btn) {
+        const codeBlock = btn.closest('.code-block-wrapper').querySelector('code');
+        const text = codeBlock.textContent;
+        
+        navigator.clipboard.writeText(text).then(() => {
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<i class="bi bi-check"></i> Copied!';
+            btn.classList.add('copied');
+            
+            setTimeout(() => {
+                btn.innerHTML = originalHTML;
+                btn.classList.remove('copied');
+            }, 2000);
+        });
+    }
+
+    async function sendMessage() {
+        const message = chatInput.value.trim();
+        
+        if (!message) return;
+
+        // Disable input while processing
+        chatInput.disabled = true;
+        sendBtn.disabled = true;
+
+        // Add user message to chat
+        addMessage(message, true);
+
+        // Clear input
+        chatInput.value = '';
+        chatInput.style.height = 'auto';
+
+        // Show typing indicator
+        const typingIndicator = showTypingIndicator();
+
+        try {
+            const response = await fetch('/api/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ message: message })
+            });
+
+            const data = await response.json();
+
+            // Remove typing indicator
+            removeTypingIndicator();
+
+            if (data.success) {
+                const assistantMsg = addMessage('', false);
+                await typewriterEffect(assistantMsg, data.response);
+            } else {
+                const assistantMsg = addMessage('', false);
+                await typewriterEffect(assistantMsg, 'Sorry, there was an error processing your message.');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            removeTypingIndicator();
+            const assistantMsg = addMessage('', false);
+            await typewriterEffect(assistantMsg, 'Sorry, there was an error connecting to the server.');
+        } finally {
+            // Re-enable input
+            chatInput.disabled = false;
+            sendBtn.disabled = false;
+            chatInput.focus();
+        }
+    }
+
+    function sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+</script>
+{% endblock %}

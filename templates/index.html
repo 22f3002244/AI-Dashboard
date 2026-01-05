@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}Dash AI{% endblock %}
+
+{% block style %}
+<style>
+    .content-header {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .content h1 {
+        color: #000;
+        font-size: 5rem;
+    }
+
+    .content h2 {
+        color: #000;
+        margin-bottom: 10px;
+    }
+
+    .content h4 {
+        font-weight: 350;
+        font-size: 2rem;
+    }
+
+    .content p {
+        color: #666;
+    }
+
+    .get-started-card {
+        margin-top: 3rem;
+        padding: 2rem;
+        background: #f8f9fa;
+        border-radius: 8px;
+        border: 1px solid #000;
+    }
+
+    .get-started-card h4 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+    }
+
+    .get-started-card p {
+        font-size: 1.125rem;
+        margin-bottom: 1.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+    <div class="mt-5">
+        <h1>Welcome to Dash AI</h1>
+        <br>
+        <h4>
+            Dash AI is a chat-first, AI-powered platform for IoT developers to build,
+            visualize, and manage real-time dashboards directly from device data streams.
+            Connect devices, ask questions, and deploy insights—faster.
+        </h4>
+
+        <div class="get-started-card">
+            <h4>Get Started</h4>
+            <p>
+                Connect your first device, start a chat, and watch Dash AI turn raw IoT data
+                into actionable dashboards in minutes.
+            </p>
+            <button class="btn btn-lg btn-dark" onclick="gotologin()">Connect a Device</button>
+            <button class="btn btn-lg btn-outline-dark ms-2" onclick="docs()">View
+                Documentation</button>
+        </div>
+
+    </div>
+{% endblock %}
+
+{% block script %}
+<script>
+    function gotologin() {
+        window.location.href = '/login';
+    }
+
+    function docs() {
+        window.location.href = 'https://github.com/22f3002244/d100'
+    }
+</script>
+{% endblock %}

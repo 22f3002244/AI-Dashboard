@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{% endblock %}</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Marked.js for Markdown -->
+    <script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js"></script>
+    <!-- Highlight.js for Code Syntax Highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <!-- Mermaid for Diagrams -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
+
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            background: #f8f9fa;
+            color: black;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .wrapper {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .content {
+            flex-grow: 1;
+            padding: 40px;
+            background: #f5f5f5;
+            margin-left: 260px;
+            transition: margin-left 0.3s ease;
+        }
+
+        .content>* {
+            max-width: 1200px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .sidebar {
+            width: 260px;
+            background: transparent;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid #333;
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            transition: width 0.3s ease;
+        }
+
+        .sidebar.collapsed {
+            width: 60px;
+        }
+
+        .sidebar-header {
+            padding: 15px;
+            padding-right: 20px;
+        }
+
+        .toggle-btn {
+            background: transparent;
+            border: none;
+            color: #000;
+            cursor: pointer;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            font-size: 20px;
+            justify-content: end;
+        }
+
+        .sidebar-nav {
+            flex-grow: 1;
+            padding: 20px 15px;
+            overflow-y: auto;
+        }
+
+        .nav-button {
+            background: transparent;
+            border: none;
+            color: #000;
+            padding: 12px 15px;
+            cursor: pointer;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 10px;
+            text-align: left;
+            font-size: 16px;
+            transition: background 0.2s ease;
+        }
+
+        .nav-button:hover {
+            background: rgba(0, 0, 0, 0.05);
+            border-radius: 6px;
+        }
+
+        .nav-button i {
+            font-size: 24px;
+            min-width: 20px;
+        }
+
+        .nav-button span {
+            white-space: nowrap;
+            overflow: hidden;
+            opacity: 1;
+            transition: opacity 0.3s ease;
+        }
+
+        .sidebar.collapsed .nav-button span {
+            opacity: 0;
+            width: 0;
+        }
+
+        .sidebar.collapsed .nav-button {
+            justify-content: center;
+            padding: 12px;
+        }
+
+        .sidebar-footer {
+            padding: 15px;
+            border-top: 1px solid #333;
+        }
+
+        .account-section {
+            background: #f8f9fa;
+            border: none;
+            padding: 12px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+        }
+
+        .account-section:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+
+        .avatar {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            background: #444;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            min-width: 35px;
+            color: #fff;
+        }
+
+        .account-info {
+            overflow: hidden;
+            transition: opacity 0.3s ease;
+        }
+
+        .sidebar.collapsed .account-info {
+            opacity: 0;
+            width: 0;
+        }
+
+        .account-name {
+            font-size: 16px;
+            font-weight: 600;
+            margin: 0;
+            color: #000;
+        }
+
+        .auth-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            transition: opacity 0.3s ease;
+        }
+
+        .auth-btn {
+            padding: 10px 15px;
+            border-radius: 6px;
+            border: 1px solid #333;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .signup-btn {
+            background: #fff;
+            color: #000;
+        }
+
+        .signup-btn:hover {
+            background: #e0e0e0;
+        }
+
+        .sidebar.collapsed .auth-buttons {
+            display: none;
+        }
+
+        .logout-btn {
+            background: #dc3545;
+            color: #fff;
+            border: none;
+        }
+
+        .logout-btn:hover {
+            background: #c82333;
+        }
+
+        /* Scrollbar styling */
+        .sidebar-nav::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .sidebar-nav::-webkit-scrollbar-track {
+            background: #1a1a1a;
+        }
+
+        .sidebar-nav::-webkit-scrollbar-thumb {
+            background: #333;
+            border-radius: 10px;
+        }
+
+        .sidebar-nav::-webkit-scrollbar-thumb:hover {
+            background: #444;
+        }
+
+        .flash-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            max-width: 400px;
+        }
+
+        .flash-message {
+            padding: 1rem 1.25rem;
+            margin-bottom: 0.75rem;
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            animation: slideIn 0.3s ease-out;
+            font-size: 0.95rem;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* Success */
+        .flash-message.success {
+            background-color: #e6f4ea;
+            color: #1e4620;
+        }
+
+        /* Error / Danger */
+        .flash-message.danger {
+            background-color: #fce8e6;
+            color: #5f2120;
+        }
+
+        /* Warning */
+        .flash-message.warning {
+            background-color: #fff4e5;
+            color: #663c00;
+        }
+
+        /* Info */
+        .flash-message.info {
+            background-color: #e8f0fe;
+            color: #1a3a8a;
+        }
+
+        .flash-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: inherit;
+            opacity: 0.7;
+            margin-left: 1rem;
+            padding: 0;
+            line-height: 1;
+        }
+
+        .flash-close:hover {
+            opacity: 1;
+        }
+
+        @media (max-width: 768px) {
+            .flash-container {
+                right: 10px;
+                left: 10px;
+                max-width: none;
+            }
+        }
+    </style>
+    {% block style %}{% endblock %}
+</head>
+
+<body>
+    <div class="wrapper">
+        <!-- Sidebar -->
+        <div id="sidebar" class="sidebar">
+            <!-- Header with Toggle Button -->
+            <div class="sidebar-header">
+                <button class="toggle-btn" onclick="toggleSidebar()">
+                    <i class="bi bi-layout-sidebar"></i>
+                </button>
+            </div>
+
+            <!-- Navigation Buttons -->
+            <div class="sidebar-nav">
+                <button class="nav-button" onclick="newChat()">
+                    <i class="bi bi-plus-circle"></i>
+                    <span>New Chat</span>
+                </button>
+
+                <button class="nav-button" onclick="goToProjects()">
+                    <i class="bi bi-folder"></i>
+                    <span>My Projects</span>
+                </button>
+
+                <button class="nav-button" onclick="viewHistory()">
+                    <i class="bi bi-clock-history"></i>
+                    <span>Drafts</span>
+                </button>
+            </div>
+
+            <!-- Footer with Account/Auth Section -->
+            <div class="sidebar-footer">
+                {% if user %}
+                <!-- Show user info when logged in -->
+                <div class="account-section" onclick="goToAccount()">
+                    <div class="avatar">{{ user.firstname[0].upper() }}{{ user.lastname[0].upper() }}</div>
+                    <div class="account-info">
+                        <p class="account-name">{{ user.firstname }} {{ user.lastname }}</p>
+                    </div>
+                </div>
+                {% else %}
+                <!-- Show Login/Sign Up when not logged in -->
+                <div class="auth-buttons">
+                    <button class="auth-btn signup-btn" onclick="goToSignup()">
+                        <i class="bi bi-person-plus"></i> Login / SignUp
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Content block for child templates -->
+        <div id="content" class="content">
+            <div class="flash-container">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                {% for category, message in messages %}
+                <div class="flash-message {{ category }}">
+                    <span>{{ message }}</span>
+                    <button class="flash-close" onclick="this.parentElement.remove()">&times;</button>
+                </div>
+                {% endfor %}
+                {% endif %}
+                {% endwith %}
+            </div>
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+
+    {% block script %}{% endblock %}
+
+    <script>
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const content = document.getElementById('content');
+            sidebar.classList.toggle('collapsed');
+
+            if (sidebar.classList.contains('collapsed')) {
+                content.style.marginLeft = '60px';
+            } else {
+                content.style.marginLeft = '260px';
+            }
+        }
+
+        function newChat() {
+            window.location.href = '/chat';
+        }
+
+        function goToProjects() {
+            window.location.href = '/my-projects';
+        }
+
+        function viewHistory() {
+            window.location.href = '/projects/drafts';
+        }
+
+        function goToAccount() {
+            window.location.href = '/Settings';
+        }
+
+        function goToSignup() {
+            window.location.href = '/login';
+        }
+
+        function logout() {
+            window.location.href = '/logout';
+        }
+
+        // Auto-dismiss flash messages after 5 seconds
+        document.addEventListener('DOMContentLoaded', function () {
+            const flashMessages = document.querySelectorAll('.flash-message');
+            flashMessages.forEach(function (message) {
+                setTimeout(function () {
+                    message.style.animation = 'slideOut 0.3s ease-out';
+                    setTimeout(function () {
+                        message.remove();
+                    }, 300);
+                }, 5000);
+            });
+        });
+
+        // Add slideOut animation
+        const style = document.createElement('style');
+        style.textContent = `
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+        }
+    `;
+        document.head.appendChild(style);
+    </script>
+</body>
+
+</html>

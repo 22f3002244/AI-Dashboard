@@ -1,0 +1,289 @@
+{% extends 'base.html' %}
+
+{% block title %}Settings{% endblock %}
+
+{% block style %}
+<style>
+    .settings-container {
+        margin: 2rem auto;
+        padding: 0 1.5rem;
+    }
+
+    .settings-header {
+        margin-bottom: 2rem;
+    }
+
+    .settings-header h1 {
+        font-size: 2rem;
+        font-weight: 600;
+        color: #1a1a1a;
+        margin-bottom: 0.5rem;
+    }
+
+    .settings-header p {
+        color: #666;
+        font-size: 0.95rem;
+    }
+
+    .settings-section {
+        background: white;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        border: 1px solid #e0e0e0;
+    }
+
+    .section-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #1a1a1a;
+        margin-bottom: 1rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid #e5e5e5;
+    }
+
+    .accordion {
+        background: white;
+        border-radius: 8px;
+        margin-bottom: 1.5rem;
+        overflow: hidden;
+        border: 1px solid #e0e0e0;
+    }
+
+    .accordion-header {
+        padding: 1.25rem 1.5rem;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: background-color 0.2s;
+        user-select: none;
+    }
+
+    .accordion-header:hover {
+        background-color: #fafafa;
+    }
+
+    .accordion-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #1a1a1a;
+        margin: 0;
+    }
+
+    .accordion-icon {
+        font-size: 1.2rem;
+        color: #666;
+        transition: transform 0.3s;
+    }
+
+    .accordion.active .accordion-icon {
+        transform: rotate(180deg);
+    }
+
+    .accordion-content {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.3s ease-out;
+    }
+
+    .accordion.active .accordion-content {
+        max-height: 600px;
+        transition: max-height 0.4s ease-in;
+    }
+
+    .accordion-body {
+        padding: 1.5rem;
+        border-top: 1px solid #e5e5e5;
+    }
+
+    .form-group {
+        margin-bottom: 1.25rem;
+    }
+
+    .form-group:last-child {
+        margin-bottom: 0;
+    }
+
+    .form-label {
+        display: block;
+        font-size: 0.9rem;
+        font-weight: 500;
+        color: #333;
+        margin-bottom: 0.5rem;
+    }
+
+    .form-input {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 0.95rem;
+        transition: border-color 0.2s;
+        box-sizing: border-box;
+    }
+
+    .form-input:focus {
+        outline: none;
+        border-color: #333;
+        box-shadow: 0 0 0 3px rgba(51, 51, 51, 0.1);
+    }
+
+    .form-input:disabled {
+        background-color: #f5f5f5;
+        cursor: not-allowed;
+    }
+
+    .btn {
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 6px;
+        font-size: 0.95rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .btn-primary {
+        background: #333;
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background: #1a1a1a;
+    }
+
+    .btn-danger {
+        background: #dc3545;
+        color: white;
+    }
+
+    .btn-danger:hover {
+        background: #c82333;
+    }
+
+    .btn-group {
+        display: flex;
+        gap: 1rem;
+        margin-top: 1.5rem;
+    }
+
+    .info-text {
+        font-size: 0.85rem;
+        color: #666;
+        margin-top: 0.5rem;
+    }
+
+    .danger-zone {
+        border: 1px solid #dc3545;
+        background: #fff5f5;
+    }
+
+    @media (max-width: 768px) {
+        .settings-container {
+            padding: 0 1rem;
+        }
+
+        .btn-group {
+            flex-direction: column;
+        }
+
+        .btn {
+            width: 100%;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="settings-container">
+    <h1>Settings</h1>
+    <hr>
+
+    <!-- Profile Information -->
+    <div class="settings-section">
+        <h2 class="section-title">Profile Information</h2>
+        <form method="POST" action="/update-profile">
+            <div class="form-group">
+                <label class="form-label" for="first_name">First Name</label>
+                <input type="text" id="first_name" name="first_name" class="form-input" 
+                       value="{{ user.firstname if user else '' }}" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="last_name">Last Name</label>
+                <input type="text" id="last_name" name="last_name" class="form-input" 
+                       value="{{ user.lastname if user else '' }}" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="email">Email Address</label>
+                <input type="email" id="email" name="email" class="form-input" 
+                       value="{{ user.email if user else '' }}" disabled>
+                <p class="info-text">Contact support to change your email address</p>
+            </div>
+            <div class="btn-group">
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Change Password Accordion -->
+    <div class="accordion">
+        <div class="accordion-header" onclick="toggleAccordion(this)">
+            <h2 class="accordion-title">Change Password</h2>
+            <span class="accordion-icon">▼</span>
+        </div>
+        <div class="accordion-content">
+            <div class="accordion-body">
+                <form method="POST" action="/change-password">
+                    <div class="form-group">
+                        <label class="form-label" for="current_password">Current Password</label>
+                        <input type="password" id="current_password" name="current_password" 
+                               class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="new_password">New Password</label>
+                        <input type="password" id="new_password" name="new_password" 
+                               class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="confirm_password">Confirm New Password</label>
+                        <input type="password" id="confirm_password" name="confirm_password" 
+                               class="form-input" required>
+                    </div>
+                    <div class="btn-group">
+                        <button type="submit" class="btn btn-primary">Update Password</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Danger Zone -->
+    <div class="settings-section danger-zone">
+        <h2 class="section-title" style="color: #dc3545;">Danger Zone</h2>
+        <p class="info-text" style="margin-bottom: 1rem;">
+            Once you delete your account, there is no going back. Please be certain.
+        </p>
+        <button type="button" class="btn btn-danger" onclick="confirmDelete()">
+            Delete Account
+        </button>
+    </div>
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+    function toggleAccordion(element) {
+        const accordion = element.parentElement;
+        accordion.classList.toggle('active');
+    }
+
+    function confirmDelete() {
+        if (confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
+            if (confirm('This is your final warning. Delete account permanently?')) {
+                window.location.href = '/delete-account';
+            }
+        }
+    }
+</script>
+{% endblock %}
