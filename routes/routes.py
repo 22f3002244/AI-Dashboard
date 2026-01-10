@@ -81,19 +81,29 @@ def chat_api():
                 'error': 'No message provided'
             }), 400
         
-        # Call Ollama API with optimized settings
+        # Initialize conversation history in session if it doesn't exist
+        if 'conversation_history' not in session:
+            session['conversation_history'] = []
+        
+        # Add user message to history
+        session['conversation_history'].append({
+            'role': 'user',
+            'content': user_message
+        })
+        
+        # Call Ollama API with the chat endpoint (supports conversation history)
         response = requests.post(
-            OLLAMA_API_URL,
+            OLLAMA_API_URL.replace('/api/generate', '/api/chat'),  # Use chat endpoint
             json={
                 "model": MODEL_NAME,
-                "prompt": user_message,
+                "messages": session['conversation_history'],  # Send full history
                 "stream": False,
                 "options": {
                     "temperature": 0.7,
                     "num_predict": 512,
                     "top_k": 40,
                     "top_p": 0.9,
-                    "num_ctx": 2048
+                    "num_ctx": 4096  # Increased context window for better memory
                 }
             },
             timeout=180
@@ -101,9 +111,24 @@ def chat_api():
         
         if response.status_code == 200:
             result = response.json()
+            ai_response = result.get('message', {}).get('content', '')
+            
+            # Add AI response to history
+            session['conversation_history'].append({
+                'role': 'assistant',
+                'content': ai_response
+            })
+            
+            # Optional: Limit history to prevent context overflow
+            MAX_MESSAGES = 40  # Keep last 20 messages (10 exchanges)
+            if len(session['conversation_history']) > MAX_MESSAGES:
+                session['conversation_history'] = session['conversation_history'][-MAX_MESSAGES:]
+            
+            session.modified = True
+            
             return jsonify({
                 'success': True,
-                'response': result.get('response', '')
+                'response': ai_response
             })
         else:
             return jsonify({
@@ -125,10 +150,35 @@ def chat_api():
     
     except Exception as e:
         print(f"Error: {str(e)}")
+        # Remove the last user message if there was an error
+        if session.get('conversation_history') and session['conversation_history'][-1]['role'] == 'user':
+            session['conversation_history'].pop()
+            session.modified = True
         return jsonify({
             'success': False,
             'error': str(e)
         }), 500
+
+
+# Add endpoint to clear conversation
+@main.route('/api/chat/clear', methods=['POST'])
+@login_required
+def clear_chat():
+    session['conversation_history'] = []
+    session.modified = True
+    return jsonify({
+        'success': True,
+        'message': 'Conversation cleared'
+    })
+
+# Optional: Add endpoint to view conversation history (for debugging)
+@main.route('/api/chat/history', methods=['GET'])
+@login_required
+def get_chat_history():
+    return jsonify({
+        'success': True,
+        'history': session.get('conversation_history', [])
+    })
 
 @main.route("/login", methods=["POST"])
 def login_post():
