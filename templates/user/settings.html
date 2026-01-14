@@ -57,6 +57,7 @@
         justify-content: space-between;
         align-items: center;
         transition: background-color 0.2s;
+        -webkit-user-select: none;
         user-select: none;
     }
 
@@ -179,6 +180,23 @@
         background: #fff5f5;
     }
 
+    .danger-zone .danger-title {
+        color: #dc3545;
+    }
+
+    .danger-zone .danger-text {
+        margin-bottom: 1rem;
+    }
+
+    .logout-section {
+        background: #e8f4f8;
+        border: 1px solid #4ba3c3;
+    }
+
+    .logout-section .section-title {
+        color: #2c5aa0;
+    }
+
     @media (max-width: 768px) {
         .settings-container {
             padding: 0 1rem;
@@ -260,12 +278,21 @@
 
     <!-- Danger Zone -->
     <div class="settings-section danger-zone">
-        <h2 class="section-title" style="color: #dc3545;">Danger Zone</h2>
-        <p class="info-text" style="margin-bottom: 1rem;">
+        <h2 class="section-title danger-title">Danger Zone</h2>
+        <p class="info-text danger-text">
             Once you delete your account, there is no going back. Please be certain.
         </p>
         <button type="button" class="btn btn-danger" onclick="confirmDelete()">
             Delete Account
+        </button>
+    </div>
+
+    <!-- Logout Section -->
+    <div class="settings-section logout-section">
+        <h2 class="section-title">Logout</h2>
+        <p class="info-text">Sign out of your account on this device.</p>
+        <button type="button" class="btn btn-primary" onclick="logout()">
+            Logout
         </button>
     </div>
 </div>
@@ -283,6 +310,12 @@
             if (confirm('This is your final warning. Delete account permanently?')) {
                 window.location.href = '/delete-account';
             }
+        }
+    }
+
+    function logout() {
+        if (confirm('Are you sure you want to logout?')) {
+            window.location.href = '/logout';
         }
     }
 </script>

@@ -6,6 +6,17 @@ import json
 
 main = Blueprint("main", __name__)
 
+conversation_cache = {}
+
+def get_user_conversation(user_id):
+    if user_id not in conversation_cache:
+        conversation_cache[user_id] = []
+    return conversation_cache[user_id]
+
+def clear_user_conversation(user_id):
+    if user_id in conversation_cache:
+        conversation_cache[user_id] = []
+
 # Login required decorator
 def login_required(f):
     """
@@ -72,60 +83,53 @@ MODEL_NAME = "llama3.2:1b"
 @login_required
 def chat_api():
     try:
+        user_id = session['user_id']
         data = request.get_json()
         user_message = data.get('message', '')
-        
+
         if not user_message:
             return jsonify({
                 'success': False,
                 'error': 'No message provided'
             }), 400
-        
-        # Initialize conversation history in session if it doesn't exist
-        if 'conversation_history' not in session:
-            session['conversation_history'] = []
-        
-        # Add user message to history
-        session['conversation_history'].append({
+
+        conversation = get_user_conversation(user_id)
+
+        conversation.append({
             'role': 'user',
             'content': user_message
         })
-        
-        # Call Ollama API with the chat endpoint (supports conversation history)
+
         response = requests.post(
-            OLLAMA_API_URL.replace('/api/generate', '/api/chat'),  # Use chat endpoint
+            OLLAMA_API_URL.replace('/api/generate', '/api/chat'),
             json={
                 "model": MODEL_NAME,
-                "messages": session['conversation_history'],  # Send full history
+                "messages": conversation,
                 "stream": False,
                 "options": {
                     "temperature": 0.7,
                     "num_predict": 512,
                     "top_k": 40,
                     "top_p": 0.9,
-                    "num_ctx": 4096  # Increased context window for better memory
+                    "num_ctx": 4096
                 }
             },
             timeout=180
         )
-        
+
         if response.status_code == 200:
             result = response.json()
             ai_response = result.get('message', {}).get('content', '')
-            
-            # Add AI response to history
-            session['conversation_history'].append({
+
+            conversation.append({
                 'role': 'assistant',
                 'content': ai_response
             })
-            
-            # Optional: Limit history to prevent context overflow
-            MAX_MESSAGES = 40  # Keep last 20 messages (10 exchanges)
-            if len(session['conversation_history']) > MAX_MESSAGES:
-                session['conversation_history'] = session['conversation_history'][-MAX_MESSAGES:]
-            
-            session.modified = True
-            
+
+            MAX_MESSAGES = 40
+            if len(conversation) > MAX_MESSAGES:
+                conversation_cache[user_id] = conversation[-MAX_MESSAGES:]
+
             return jsonify({
                 'success': True,
                 'response': ai_response
@@ -135,49 +139,47 @@ def chat_api():
                 'success': False,
                 'error': f'Ollama API error: {response.status_code}'
             }), 500
-    
+
     except requests.exceptions.Timeout:
         return jsonify({
             'success': False,
             'error': 'Request timed out. The model is taking too long to respond. Try using a smaller model like llama3.2:1b'
         }), 504
-    
+
     except requests.exceptions.ConnectionError:
         return jsonify({
             'success': False,
             'error': 'Cannot connect to Ollama. Make sure Ollama is running (ollama serve)'
         }), 500
-    
+
     except Exception as e:
         print(f"Error: {str(e)}")
-        # Remove the last user message if there was an error
-        if session.get('conversation_history') and session['conversation_history'][-1]['role'] == 'user':
-            session['conversation_history'].pop()
-            session.modified = True
+        conversation = get_user_conversation(user_id)
+        if conversation and conversation[-1]['role'] == 'user':
+            conversation.pop()
         return jsonify({
             'success': False,
             'error': str(e)
         }), 500
 
 
-# Add endpoint to clear conversation
 @main.route('/api/chat/clear', methods=['POST'])
 @login_required
 def clear_chat():
-    session['conversation_history'] = []
-    session.modified = True
+    user_id = session['user_id']
+    clear_user_conversation(user_id)
     return jsonify({
         'success': True,
         'message': 'Conversation cleared'
     })
 
-# Optional: Add endpoint to view conversation history (for debugging)
 @main.route('/api/chat/history', methods=['GET'])
 @login_required
 def get_chat_history():
+    user_id = session['user_id']
     return jsonify({
         'success': True,
-        'history': session.get('conversation_history', [])
+        'history': get_user_conversation(user_id)
     })
 
 @main.route("/login", methods=["POST"])
@@ -189,10 +191,9 @@ def login_post():
         flash("Invalid email or password", "danger")
         return redirect(url_for("main.login"))
 
-    # Store user_id in session
     session['user_id'] = user.id
     flash("Login successful", "success")
-    return redirect("/chat")
+    return redirect(url_for("main.projects"))
 
 @main.route("/register", methods=["POST"])
 def register_post():
@@ -204,7 +205,7 @@ def register_post():
     existing_user = User.query.filter_by(email=email).first()
     if existing_user:
         flash("Email already registered", "danger")
-        return redirect(url_for("auth.register"))
+        return redirect(url_for("main.SignUp"))
 
     user = User(firstname=first_name, lastname=last_name, email=email)
     user.set_password(password)
@@ -218,7 +219,7 @@ def register_post():
 def logout():
     session.pop('user_id', None)
     flash("Logged out successfully", "success")
-    return redirect(url_for("main.login"))
+    return redirect(url_for("main.home"))
 
 @main.route("/delete-account")
 @login_required
