@@ -18,7 +18,6 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-
 @main.route('/')
 def home():
     return render_template("index.html")
@@ -74,7 +73,7 @@ def login_post():
 
     session['user_id'] = user.id
     flash("Login successful", "success")
-    return redirect(url_for("main.projects"))
+    return redirect(url_for("main.chat"))
 
 @main.route("/register", methods=["POST"])
 def register_post():
