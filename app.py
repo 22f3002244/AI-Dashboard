@@ -3,7 +3,7 @@ from routes.routes import main
 from routes.ai import ai
 from models.database import db
 import os
-from dotenv import load_dotenv
+from dotenv import load_dotenv  
 
 load_dotenv()
 
